@@ -39,6 +39,10 @@ import org.dependencytrack.model.Component;
 import org.dependencytrack.model.ComponentIdentity;
 import org.dependencytrack.model.ComponentOccurrence;
 import org.dependencytrack.model.ComponentProperty;
+import org.dependencytrack.model.CraProductClass;
+import org.dependencytrack.model.CraReportingCase;
+import org.dependencytrack.model.CraReportingCaseStatus;
+import org.dependencytrack.model.CraReportingCaseType;
 import org.dependencytrack.model.FindingAttribution;
 import org.dependencytrack.model.License;
 import org.dependencytrack.model.LicenseGroup;
@@ -54,6 +58,7 @@ import org.dependencytrack.model.ProjectVersion;
 import org.dependencytrack.model.Repository;
 import org.dependencytrack.model.RepositoryType;
 import org.dependencytrack.model.ServiceComponent;
+import org.dependencytrack.model.Severity;
 import org.dependencytrack.model.Tag;
 import org.dependencytrack.model.ViolationAnalysis;
 import org.dependencytrack.model.Vulnerability;
@@ -74,6 +79,7 @@ import javax.jdo.PersistenceManager;
 import javax.jdo.Query;
 import javax.jdo.metadata.MemberMetadata;
 import javax.jdo.metadata.TypeMetadata;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -100,6 +106,7 @@ public class QueryManager extends AlpineQueryManager {
     private static final Logger LOGGER = LoggerFactory.getLogger(QueryManager.class);
     private ComponentQueryManager componentQueryManager;
     private AnalysisQueryManager analysisQueryManager;
+    private CraQueryManager craQueryManager;
     private LicenseQueryManager licenseQueryManager;
     private NotificationQueryManager notificationQueryManager;
     private PolicyQueryManager policyQueryManager;
@@ -224,6 +231,20 @@ public class QueryManager extends AlpineQueryManager {
                     : new ProjectQueryManager(getPersistenceManager(), request);
         }
         return projectQueryManager;
+    }
+
+    /**
+     * Lazy instantiation of CraQueryManager.
+     *
+     * @return a CraQueryManager object
+     */
+    private CraQueryManager getCraQueryManager() {
+        if (craQueryManager == null) {
+            craQueryManager = (request == null)
+                    ? new CraQueryManager(getPersistenceManager())
+                    : new CraQueryManager(getPersistenceManager(), request);
+        }
+        return craQueryManager;
     }
 
     /**
@@ -451,6 +472,76 @@ public class QueryManager extends AlpineQueryManager {
 
     public List<ProjectProperty> getProjectProperties(final Project project) {
         return getProjectQueryManager().getProjectProperties(project);
+    }
+
+    public @Nullable CraProductClass getCraProductClass(final Project project) {
+        return getCraQueryManager().getCraProductClass(project);
+    }
+
+    public Project setCraProductClass(final Project project, final CraProductClass productClass) {
+        return getCraQueryManager().setCraProductClass(project, productClass);
+    }
+
+    public @Nullable Instant getCraSupportPeriodEnd(final Project project) {
+        return getCraQueryManager().getCraSupportPeriodEnd(project);
+    }
+
+    public Project setCraSupportPeriodEnd(final Project project, final Instant supportPeriodEnd) {
+        return getCraQueryManager().setCraSupportPeriodEnd(project, supportPeriodEnd);
+    }
+
+    public @Nullable CraReportingCase getCraReportingCase(final UUID uuid) {
+        return getCraQueryManager().getCraReportingCase(uuid);
+    }
+
+    public List<CraReportingCase> getCraReportingCases(final Project project) {
+        return getCraQueryManager().getCraReportingCases(project);
+    }
+
+    public List<CraReportingCase> getOverdueCraReportingCases() {
+        return getCraQueryManager().getOverdueCraReportingCases();
+    }
+
+    public CraReportingCase createCraReportingCase(
+            final Project project,
+            final @Nullable Vulnerability vulnerability,
+            final String title,
+            final CraReportingCaseType caseType,
+            final @Nullable Severity severity,
+            final @Nullable String description,
+            final Instant awarenessAt,
+            final @Nullable String csirt) {
+        return getCraQueryManager()
+                .createCraReportingCase(project, vulnerability, title, caseType, severity, description, awarenessAt, csirt);
+    }
+
+    public @Nullable CraReportingCase recordEarlyWarningSubmission(
+            final CraReportingCase reportingCase, final Instant submittedAt) {
+        return getCraQueryManager().recordEarlyWarningSubmission(reportingCase, submittedAt);
+    }
+
+    public @Nullable CraReportingCase recordFullNotificationSubmission(
+            final CraReportingCase reportingCase, final Instant submittedAt) {
+        return getCraQueryManager().recordFullNotificationSubmission(reportingCase, submittedAt);
+    }
+
+    public @Nullable CraReportingCase recordFinalReportSubmission(
+            final CraReportingCase reportingCase, final Instant submittedAt) {
+        return getCraQueryManager().recordFinalReportSubmission(reportingCase, submittedAt);
+    }
+
+    public @Nullable CraReportingCase recordCustomerNotification(
+            final CraReportingCase reportingCase, final Instant notifiedAt) {
+        return getCraQueryManager().recordCustomerNotification(reportingCase, notifiedAt);
+    }
+
+    public @Nullable CraReportingCase updateCraReportingCaseStatus(
+            final CraReportingCase reportingCase, final CraReportingCaseStatus status) {
+        return getCraQueryManager().updateCraReportingCaseStatus(reportingCase, status);
+    }
+
+    public void deleteCraReportingCase(final CraReportingCase reportingCase) {
+        getCraQueryManager().deleteCraReportingCase(reportingCase);
     }
 
     public PaginatedResult getComponentByHash(String hash) {
